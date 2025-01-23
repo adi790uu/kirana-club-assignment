@@ -1,56 +1,57 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/adi790uu/kirana-club-assignment/database"
-	"gorm.io/gorm"
-
+	"github.com/adi790uu/kirana-club-assignment/config"
+	"github.com/adi790uu/kirana-club-assignment/routes"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
 
-// func (r *Repository) SetupRoutes(app *fiber.App) {
-// 	api := app.Group("/api")
-// }
-
-type Repository struct {
-	DB    *gorm.DB
-}
-
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal(err)
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("No .env file found")
 	}
-
-	config := &database.Config{
-		Host:     os.Getenv("DB_HOST"),
-		Port:     os.Getenv("DB_PORT"),
-		Password: os.Getenv("DB_PASS"),
-		User:     os.Getenv("DB_USER"),
-		SSLMode:  os.Getenv("DB_SSLMODE"),
-		DBName:   os.Getenv("DB_NAME"),
-	}
-
-	db, err := database.NewConnection(config)
-	if err != nil {
-		log.Fatal("Could not load the database")
-	}
-
-
-
-	// repo := Repository{
-	// 	DB:  db,
-	// }
 
 	app := fiber.New()
-	// repo.SetupRoutes(app)
 
-	log.Println("Server running on port 8080")
-	if err := app.Listen(":8080"); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	db, err := config.SetupDatabase()
+	if err != nil {
+		log.Fatal("Failed to connect to the database")
 	}
-	
+	log.Println("Connected to the database..")
+
+	routes.SetupRoutes(app, db)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := app.Listen(":" + port); err != nil {
+			log.Fatalf("Error starting server: %v", err)
+		}
+	}()
+
+	log.Printf("Server running on port %s", port)
+
+	<-quit
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+	log.Println("Server exiting")
 }

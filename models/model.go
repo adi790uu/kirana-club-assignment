@@ -16,7 +16,7 @@ type Job struct {
 }
 
 type Store struct {
-	ID       int    `db:"id" gorm:"primaryKey;autoIncrement"`
+	ID       string    `db:"id" gorm:"primaryKey"`
 	Name     string `db:"name"`
 	AreaCode string `db:"area_code"`
 }
@@ -24,9 +24,9 @@ type Store struct {
 type Image struct {
 	ID        int       `db:"id" gorm:"primaryKey;autoIncrement"`
 	JobID     int       `db:"job_id" gorm:"not null"`
-	StoreID   int       `db:"store_id"`
+	StoreID   string       `db:"store_id"`
 	Perimeter int       `db:"perimeter"`
-	Status    string    `db:"status"`
+	Status    bool    `db:"status"`
 	URL       string    `db:"url"`
 	CreatedAt time.Time `db:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `db:"updated_at" gorm:"autoUpdateTime"`
