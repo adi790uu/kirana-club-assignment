@@ -1,24 +1,29 @@
-FROM golang:1.22 AS builder
+#Stage 1: build
+FROM golang:1.22.5-alpine AS build
+
+RUN mkdir /app
+
+COPY . /app
 
 WORKDIR /app
 
-COPY go.mod ./
+RUN go mod download && go mod tidy
 
-RUN go mod download
+RUN go build -o main .
 
-COPY . .
+RUN chmod +x /app/main
 
-RUN go build -o /kirana-club-assignment
-RUN ls -l /app
 
-FROM alpine:latest  
+#Stage 2 : Run
 
-WORKDIR /root/
+FROM alpine:latest
 
-COPY --from=builder /app/kirana-club-assignment .
+RUN apk add --no-cache curl bash
 
-RUN chmod +x /root/kirana-club-assignment
-RUN ls -l /root/
+COPY --from=build /app/main /main
 
-COPY .env .
-CMD ["./kirana-club-assignment"]
+COPY --from=build /app/.env /.env
+
+EXPOSE 3000
+
+CMD ["./main"]
