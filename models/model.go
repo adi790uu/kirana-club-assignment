@@ -3,16 +3,20 @@ package models
 import (
 	"time"
 
+	"gorm.io/datatypes"
+
 	"gorm.io/gorm"
 )
 
 type Job struct {
 	ID        int       `db:"id" gorm:"primaryKey;autoIncrement"`
-	Status    bool      `db:"status"`
+	Status    string      `db:"status"`
 	CreatedAt time.Time `db:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `db:"updated_at" gorm:"autoUpdateTime"`
-
-	Images []Image `gorm:"foreignKey:JobID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	StoreID   string      `db:"store_id"`
+	Store     Store     `gorm:"foreignKey:StoreID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Error     datatypes.JSON `db:"error" gorm:"type:json"`
+	Images    []Image   `gorm:"foreignKey:JobID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 type Store struct {

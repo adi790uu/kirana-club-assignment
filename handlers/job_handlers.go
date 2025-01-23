@@ -21,14 +21,15 @@ func SubmitJob(db *gorm.DB, jobQueue chan uint) fiber.Handler {
 		}
 
 		if err := c.BodyParser(&request); err != nil {
-			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "invalid request"})
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"message": "invalid request"})
 		}
 		if request.Count != len(request.Visits) {
-			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "count does not match visits length"})
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"message": "count does not match visits length"})
 		}
 
 		job := models.Job{
-			Status:    false,
+			Status:    "processing",
+			StoreID:   request.Visits[0].StoreID,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
@@ -49,7 +50,7 @@ func SubmitJob(db *gorm.DB, jobQueue chan uint) fiber.Handler {
 		}
 
 		jobQueue <- uint(job.ID)
-		return c.Status(http.StatusCreated).JSON(fiber.Map{"success": true, "job_id": job.ID})
+		return c.Status(http.StatusCreated).JSON(fiber.Map{"job_id": job.ID})
 	}
 }
 
@@ -57,16 +58,26 @@ func SubmitJob(db *gorm.DB, jobQueue chan uint) fiber.Handler {
 func GetJobStatus(db *gorm.DB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		jobID := c.Query("jobid")
-		var job models.Job
+		if jobID == "" {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"message": "jobid is required"})
+		}
 
-		if err := db.First(&job, jobID).Error; err != nil {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"success": false, "message": "job not found"})
+		var job models.Job
+		if err := db.Preload("Store").Preload("Images").First(&job, jobID).Error; err != nil {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"message": "job not found"})
+		}
+
+		if job.Status == "failed" {
+			return c.Status(http.StatusOK).JSON(fiber.Map{
+				"job_id": job.ID,
+				"status": job.Status,
+				"error":  job.Error,
+			})
 		}
 
 		return c.Status(http.StatusOK).JSON(fiber.Map{
-			"success": true,
-			"job_id":  job.ID,
-			"status":  job.Status,
+			"job_id": job.ID,
+			"status": job.Status,
 		})
 	}
 }

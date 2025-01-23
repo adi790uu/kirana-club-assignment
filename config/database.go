@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/adi790uu/kirana-club-assignment/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -24,4 +25,8 @@ func SetupDatabase() (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func MigrateDatabase(db *gorm.DB) {
+	db.AutoMigrate(&models.Job{}, &models.Image{}, &models.Store{})
 }
