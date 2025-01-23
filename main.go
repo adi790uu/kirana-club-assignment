@@ -27,8 +27,6 @@ func main() {
 	}
 	log.Println("Connected to the database..")
 
-	config.MigrateDatabase(db)
-
 	jobQueue := make(chan uint, 100)
 	go config.StartWorker(db, jobQueue)
 
