@@ -27,7 +27,10 @@ func main() {
 	}
 	log.Println("Connected to the database..")
 
-	routes.SetupRoutes(app, db)
+	jobQueue := make(chan uint, 100)
+	go config.StartWorker(db, jobQueue)
+
+	routes.SetupRoutes(app, db, jobQueue)
 
 	port := os.Getenv("PORT")
 	if port == "" {

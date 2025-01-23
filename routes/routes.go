@@ -6,7 +6,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(app *fiber.App, db *gorm.DB) {
-	app.Post("/api/submit", handlers.SubmitJob(db))
-	app.Get("/api/status", handlers.GetJobStatus(db))
+func SetupRoutes(app *fiber.App, db *gorm.DB, jobQueue chan uint) {
+	api := app.Group("/api")
+	api.Post("/submit", handlers.SubmitJob(db, jobQueue))
+	api.Get("/status", handlers.GetJobStatus(db))
 }
